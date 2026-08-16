@@ -1,0 +1,170 @@
+import { useState } from "react";
+
+const API_URL = "http://localhost:8000/cover-letter";
+
+function formatCoverLetter(data) {
+  return [
+    data.greeting,
+    data.opening_paragraph,
+    ...(data.body_paragraphs || []),
+    data.closing_paragraph,
+    data.signoff,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function CoverLetterPanel({ resumeText, jobDescription, companyName, roleTitle }) {
+  const [coverLetter, setCoverLetter] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const canGenerate = Boolean(
+    resumeText?.trim() &&
+      jobDescription?.trim() &&
+      companyName?.trim() &&
+      roleTitle?.trim(),
+  );
+
+  const generateCoverLetter = async () => {
+    if (!canGenerate || loading) return;
+
+    setLoading(true);
+    setError("");
+    setCopied(false);
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resume_text: resumeText.trim(),
+          job_description: jobDescription.trim(),
+          company_name: companyName.trim(),
+          role_title: roleTitle.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        let message = "Unable to generate the cover letter. Please try again.";
+
+        try {
+          const data = await response.json();
+          message = data.detail || data.message || message;
+        } catch {
+          // The server did not return a JSON error response.
+        }
+
+        throw new Error(message);
+      }
+
+      const data = await response.json();
+      const generatedLetter = formatCoverLetter(data);
+
+      if (!generatedLetter) {
+        throw new Error("The server returned an empty cover letter.");
+      }
+
+      setCoverLetter(generatedLetter);
+    } catch (requestError) {
+      setError(
+        requestError instanceof TypeError
+          ? "Could not connect to the cover letter service. Make sure the backend is running."
+          : requestError.message,
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyCoverLetter = async () => {
+    try {
+      await navigator.clipboard.writeText(coverLetter);
+      setCopied(true);
+    } catch {
+      setError("Could not copy the cover letter to your clipboard.");
+    }
+  };
+
+  const downloadCoverLetter = () => {
+    const file = new Blob([coverLetter], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "cover-letter.txt";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <section
+      className="space-y-4 rounded-lg border p-4"
+      aria-labelledby="cover-letter-title"
+    >
+      <div>
+        <h2 id="cover-letter-title" className="text-lg font-semibold">
+          Cover Letter
+        </h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Generate a personalized cover letter for this company and role.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={generateCoverLetter}
+        disabled={!canGenerate || loading}
+        className="rounded bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+      >
+        {loading ? "Generating cover letter…" : "Generate cover letter"}
+      </button>
+
+      {!canGenerate && (
+        <p className="text-sm text-amber-700">
+          Upload a resume and provide the job description, company name, and role title to continue.
+        </p>
+      )}
+
+      {error && (
+        <p role="alert" className="rounded bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+
+      {coverLetter && (
+        <div className="space-y-3">
+          <textarea
+            aria-label="Generated cover letter"
+            value={coverLetter}
+            onChange={(event) => {
+              setCoverLetter(event.target.value);
+              setCopied(false);
+            }}
+            className="min-h-96 w-full rounded border p-3 text-sm"
+          />
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={copyCoverLetter}
+              className="rounded border px-3 py-2 text-sm font-medium hover:bg-gray-50"
+            >
+              {copied ? "Copied" : "Copy"}
+            </button>
+            <button
+              type="button"
+              onClick={downloadCoverLetter}
+              className="rounded border px-3 py-2 text-sm font-medium hover:bg-gray-50"
+            >
+              Download .txt
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+export default CoverLetterPanel;
