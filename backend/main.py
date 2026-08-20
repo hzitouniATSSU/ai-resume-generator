@@ -19,7 +19,7 @@ client= OpenAI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173" , "https://ai-resume-generator-6xyzgswj1-haitam-zitouni.vercel.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
