@@ -3,6 +3,7 @@ import { useState } from "react";
 function UploadPanel({ onResumeExtracted}){
     const [fileName, setFileName] = useState("");
     const [loading, setLoading] = useState(false);
+    const [error, setError];
 
     const handleUpload = async (file) => {
         if (!file) return;
@@ -21,6 +22,7 @@ function UploadPanel({ onResumeExtracted}){
         const data = await response.json();
         onResumeExtracted(data.extracted_text);
     }catch(err){
+        setError("Could not extract the text from the resume. Please try again");
         console.error("Upload Failed", err)
     } finally{
         setLoading(false);
