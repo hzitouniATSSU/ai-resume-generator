@@ -3,7 +3,7 @@ import { useState } from "react";
 function UploadPanel({ onResumeExtracted}){
     const [fileName, setFileName] = useState("");
     const [loading, setLoading] = useState(false);
-    const [error, setError];
+    const [error, setError] = useState("");
 
     const handleUpload = async (file) => {
         if (!file) return;
