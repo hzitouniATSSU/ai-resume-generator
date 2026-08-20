@@ -9,6 +9,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 import os 
 import io
+import re
 
 load_dotenv()
 
@@ -41,6 +42,7 @@ def rtailor_resume(request: TailorRequest):
     - rewrite the resume into an ATS format
     - Emphasize the areas in the resume that matches the job description
     - Only reorder, re-emphasize, or rephrease content that already exists in the resume- do not add new jobs, skills, metrics, or credentials
+    - Output ONLY the resume content itself. Do Not include any preamble, commentary, explanation, or phrases like "Certainly!" or "below is .. "- Start directly with the candidate's name.
     """
    response=client.chat.completions.create(
     model="gpt-4o-mini",
@@ -112,6 +114,13 @@ class PDFRequest(BaseModel):
     title: str = "Document"
 
 
+
+
+def markdown_to_reportlab(text: str) -> str:
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
+    return text
+
 @app.post("/export-pdf")
 def export_pdf(request: PDFRequest):
     buffer = io.BytesIO()
@@ -121,7 +130,8 @@ def export_pdf(request: PDFRequest):
     elements = []
     for line in request.content.split("\n"):
         if line.strip():
-            elements.append(Paragraph(line, styles["Normal"]))
+            convertedLine = markdown_to_reportlab(line)
+            elements.append(Paragraph(convertedLine, styles["Normal"]))
             elements.append(Spacer(1, 12))
 
     doc.build(elements)
