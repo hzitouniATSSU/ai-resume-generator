@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const API_URL = "http://localhost:8000/tailor";
+const API_URL = `${import.meta.env.VITE_API_URL}/tailor`;
 
 function ResumeGeneratorPanel({ resumeText, jobDescription }) {
   const [tailoredResume, setTailoredResume] = useState("");
@@ -71,7 +71,7 @@ function ResumeGeneratorPanel({ resumeText, jobDescription }) {
     try {
       setError("");
 
-      const response = await fetch("http://localhost:8000/export-pdf",{
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/export-pdf`,{
         method: "POST",
         headers: {
           "Content-Type": "application/json",

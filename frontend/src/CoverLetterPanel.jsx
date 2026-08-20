@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const API_URL = "http://localhost:8000/cover-letter";
+const API_URL = `${import.meta.env.VITE_API_URL}/cover-letter`;
 
 function formatCoverLetter(data) {
   return [
@@ -91,7 +91,7 @@ function CoverLetterPanel({ resumeText, jobDescription, companyName, roleTitle }
     try {
       setError("");
 
-      const response = await fetch("http://localhost:8000/export-pdf",{
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/export-pdf`,{
         method: "POST",
         headers: {
           "Content-Type": "application/json",
