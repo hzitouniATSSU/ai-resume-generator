@@ -1,9 +1,12 @@
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, Response
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
 from pypdf import PdfReader
 from fastapi.middleware.cors import CORSMiddleware
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
 import os 
 import io
 
@@ -95,10 +98,37 @@ Write a compelling, personalized cover letter. Rules:
 - Make the opening paragraph specific to this company/role, not a template
 """
 
-    response = client.beta.chat.completions.parse(   # which method — not .create() this time
+    response = client.beta.chat.completions.parse(   
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
-        response_format= CoverLetterResponse   # what goes here — think about what you're asking it to match
+        response_format= CoverLetterResponse   
     )
 
-    return response.choices[0].message.parsed   # what attribute holds the already-parsed object
+    return response.choices[0].message.parsed   
+
+
+class PDFRequest(BaseModel):
+    content: str
+    title: str = "Document"
+
+
+@app.post("/export-pdf")
+def export_pdf(request: PDFRequest):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+
+    elements = []
+    for line in request.content.split("\n"):
+        if line.strip():
+            elements.append(Paragraph(line, styles["Normal"]))
+            elements.append(Spacer(1, 12))
+
+    doc.build(elements)
+    pdf_bytes = buffer.getvalue()
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{request.title}.pdf"'}
+    )

@@ -87,16 +87,35 @@ function CoverLetterPanel({ resumeText, jobDescription, companyName, roleTitle }
     }
   };
 
-  const downloadCoverLetter = () => {
-    const file = new Blob([coverLetter], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(file);
+  const downloadCoverLetter = async () => {
+    try {
+      setError("");
+
+      const response = await fetch("http://localhost:8000/export-pdf",{
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: coverLetter,
+          title: "Cover Letter",
+        }),
+      });
+      if (!response.ok){
+        throw new Error("Could not create the PDF.");
+      }
+    const pdfBlob = await response.blob();
+    const url = URL.createObjectURL(pdfBlob);
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = "cover-letter.txt";
+    link.download = "cover-letter.pdf";
     link.click();
     URL.revokeObjectURL(url);
-  };
+  }catch (error){
+    setError(error.message || "could not download the cover Letter as a PDF.")
+  }
+};
 
   return (
     <section
@@ -158,7 +177,7 @@ function CoverLetterPanel({ resumeText, jobDescription, companyName, roleTitle }
               onClick={downloadCoverLetter}
               className="rounded border px-3 py-2 text-sm font-medium hover:bg-gray-50"
             >
-              Download .txt
+              Download .pdf
             </button>
           </div>
         </div>

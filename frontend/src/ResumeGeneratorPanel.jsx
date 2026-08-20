@@ -67,16 +67,35 @@ function ResumeGeneratorPanel({ resumeText, jobDescription }) {
     }
   };
 
-  const downloadResume = () => {
-    const file = new Blob([tailoredResume], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(file);
+  const downloadResume = async () => {
+    try {
+      setError("");
+
+      const response = await fetch("http://localhost:8000/export-pdf",{
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: tailoredResume,
+          title: "Tailored Resume",
+        }),
+      });
+      if (!response.ok){
+        throw new Error("Could not create the PDF.");
+      }
+    const pdfBlob = await response.blob();
+    const url = URL.createObjectURL(pdfBlob);
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = "tailored-resume.txt";
+    link.download = "tailored-resume.pdf";
     link.click();
     URL.revokeObjectURL(url);
-  };
+  }catch (error){
+    setError(error.message || "could not download the resume as a PDF.")
+  }
+};
 
   return (
     <section className="space-y-4 rounded-lg border p-4" aria-labelledby="resume-generator-title">
@@ -135,7 +154,7 @@ function ResumeGeneratorPanel({ resumeText, jobDescription }) {
               onClick={downloadResume}
               className="rounded border px-3 py-2 text-sm font-medium hover:bg-gray-50"
             >
-              Download .txt
+              Download .pdf
             </button>
           </div>
         </div>
